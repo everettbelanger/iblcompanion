@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lineup Setup</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    #lineup-screen{ max-width:1200px; margin:40px auto; padding:24px; background:rgba(255,255,255,0.08); border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,0.18); backdrop-filter:blur(6px); color:#fff; }
+    .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+    .teams{ display:grid; grid-template-columns: repeat(2, minmax(340px, 1fr)); gap:24px; }
+    .panel{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); border-radius:18px; padding:16px; box-shadow:0 6px 18px rgba(0,0,0,0.18); }
+    h2{ margin:0 0 8px; }
+    .section{ margin-top:12px; }
+    .grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .order{ display:grid; grid-template-columns: auto 1fr auto; gap:8px; align-items:center; }
+    .row{ display:grid; gap:8px; }
+    select{ padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.35); background:rgba(0,0,0,0.25); color:#fff; box-shadow: inset 0 2px 6px rgba(0,0,0,0.25); }
+    .actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; flex-wrap:wrap; }
+    .btn{ font-size:1rem; padding:10px 18px; border-radius:12px; border:none; color:#fff; background:linear-gradient(90deg,#0078d4,#00eaff); box-shadow:0 4px 14px rgba(0,0,0,0.18); cursor:pointer; }
+    .btn.secondary{ background:#334; }
+    .hint{ opacity:.85; font-size:.95rem; }
+    .pos-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+    .pos-item{ display:grid; gap:6px; }
+    .err{ color:#ffd1d1; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div id="lineup-screen" class="screen">
+    <div class="header">
+      <div>
+        <h1 style="margin:0 0 6px;">Set Lineups & Defense</h1>
+        <div class="hint">Away bats first. Pick batting orders, a starting pitcher for each team, and assign defensive positions.</div>
+        <div id="weather-preview" style="margin-top:6px;font-size:.8rem;opacity:.8;display:none;">Weather: —</div>
+      </div>
+      <div class="actions">
+        <button class="btn secondary" id="import-players">Import Players</button>
+        <button class="btn secondary" id="back-to-menu">Back</button>
+        <button class="btn" id="start-game">Save & Start Game</button>
+      </div>
+    </div>
+
+    <div class="teams">
+      <div class="panel" id="away-panel">
+        <h2 id="away-title">Away</h2>
+        <div class="section">
+          <strong>Batting Order</strong>
+          <div class="row" id="away-order"></div>
+        </div>
+        <div class="section grid">
+          <div>
+            <strong>Starting Pitcher</strong>
+            <div class="row"><select id="away-pitcher"></select></div>
+          </div>
+          <div>
+            <strong>Quick Actions</strong>
+            <div class="actions" style="justify-content:flex-start;">
+              <input id="away-lineup-name" type="text" placeholder="Lineup name" style="padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.25);color:#fff;min-width:160px;" />
+              <select id="away-saved-list" style="padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.25);color:#fff;min-width:160px;"><option value="">— saved lineups —</option></select>
+              <button class="btn secondary" id="away-autofill">Auto-fill</button>
+              <button class="btn secondary" id="away-autodef">Auto-assign Defense</button>
+              <button class="btn secondary" id="away-syncdef">Sync to Defense</button>
+              <button class="btn secondary" id="away-save">Save Lineup</button>
+              <button class="btn secondary" id="away-load">Load Lineup</button>
+              <button class="btn secondary" id="away-clear">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <strong>Defense</strong>
+          <div class="pos-grid" id="away-defense"></div>
+        </div>
+        <div class="err" id="away-error"></div>
+      </div>
+
+      <div class="panel" id="home-panel">
+        <h2 id="home-title">Home</h2>
+        <div class="section">
+          <strong>Batting Order</strong>
+          <div class="row" id="home-order"></div>
+        </div>
+        <div class="section grid">
+          <div>
+            <strong>Starting Pitcher</strong>
+            <div class="row"><select id="home-pitcher"></select></div>
+          </div>
+          <div>
+            <strong>Quick Actions</strong>
+            <div class="actions" style="justify-content:flex-start;">
+              <input id="home-lineup-name" type="text" placeholder="Lineup name" style="padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.25);color:#fff;min-width:160px;" />
+              <select id="home-saved-list" style="padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.35);background:rgba(0,0,0,0.25);color:#fff;min-width:160px;"><option value="">— saved lineups —</option></select>
+              <button class="btn secondary" id="home-autofill">Auto-fill</button>
+              <button class="btn secondary" id="home-autodef">Auto-assign Defense</button>
+              <button class="btn secondary" id="home-syncdef">Sync to Defense</button>
+              <button class="btn secondary" id="home-save">Save Lineup</button>
+              <button class="btn secondary" id="home-load">Load Lineup</button>
+              <button class="btn secondary" id="home-clear">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <strong>Defense</strong>
+          <div class="pos-grid" id="home-defense"></div>
+        </div>
+        <div class="err" id="home-error"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="lineup.js"></script>
+  <script>
+    (function(){
+      function loadSettings(){ try{ return JSON.parse(localStorage.getItem('ibl.gameSettings')||'null'); }catch(_){ return null; } }
+      function loadActualTemp(){ try{ const v = localStorage.getItem('ibl.gameSettings.actualTemp'); return v? parseInt(v,10): null; }catch(_){ return null; } }
+      function render(){
+        const el = document.getElementById('weather-preview'); if(!el) return;
+        const s = loadSettings(); if(!s){ el.style.display='none'; return; }
+        const t = loadActualTemp();
+        const parts = [];
+        if(t!=null) parts.push(t+'°F');
+        parts.push(s.temperature);
+        parts.push(s.sky);
+        if(s.sky==='Cloudy' && s.precipitation!=='None') parts.push(s.precipitation);
+        el.textContent = 'Weather: ' + parts.join(' • ');
+        el.style.display='block';
+      }
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', render); else render();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saved Games</title>
+  <style>
+    body{ margin:0; font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif; background: radial-gradient(1200px 800px at 70% -10%, #0b2030, #0b1118); color:#e9eef5; }
+    .wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:30px; }
+    .card{ width:min(1100px,96vw); min-height:70vh; background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.08)); border:1px solid #ffffff22; border-radius:20px; box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 0 1px #ffffff12; backdrop-filter: blur(8px); padding:22px; display:flex; flex-direction:column; gap:18px; }
+    .header{ display:flex; align-items:center; justify-content:space-between; }
+    .title{ font-weight:800; letter-spacing:.4px; font-size:22px; opacity:.95; }
+    .list{ display:grid; gap:12px; }
+    .row{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; background:#0004; border:1px solid #ffffff22; padding:12px; border-radius:12px; }
+    .sub{ opacity:.9; }
+    .btn{ padding:10px 14px; border:none; border-radius:10px; color:#fff; cursor:pointer; background: linear-gradient(90deg, #0078d4, #00eaff); box-shadow: 0 6px 18px rgba(0,0,0,.25); font-weight:700; letter-spacing:.3px; }
+    .btn.secondary{ background:#334a5e; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <div class="title">Saved Games</div>
+        <button onclick="window.location.href='index.html'" class="btn secondary">Back</button>
+      </div>
+      <div id="list" class="list"></div>
+    </div>
+  </div>
+  <script src="saved.js"></script>
+</body>
+</html>

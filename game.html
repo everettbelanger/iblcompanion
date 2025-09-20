@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baseball Companion - Game</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Minimal inline styles to ensure a functional layout even if global CSS has issues */
+  html, body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(1400px 800px at 30% -10%, #111827 0%, rgba(17,24,39,0.6) 40%, rgba(0,0,0,0) 70%),
+                  linear-gradient(180deg, #0a0f14 0%, #000 100%);
+      background-color: #0a0f14;
+    }
+    #game-screen {
+      position: relative; z-index: 1; /* ensure main game content sits above precipitation */
+      margin: 0;
+  padding: 0 6px 6px 6px;
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+  gap: 4px;
+  background: rgba(255,255,255,0.03);
+      box-shadow: inset 0 0 0 0 rgba(0,0,0,0);
+      border-radius: 0;
+      backdrop-filter: blur(4px);
+    }
+  #scoreboard { position: sticky; top: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 14px; color: #e5e7eb; min-height: 60px; background: transparent; backdrop-filter: none; }
+  #scoreboard .team-panel { position:relative; }
+  /* Keep the scoreboard above any overlapping content (like the field translated upward) */
+  #game-screen { isolation: isolate; }
+  #scoreboard { z-index: 20; }
+  .team-logo { width: clamp(42px, 6vh, 60px); height: clamp(42px, 6vh, 60px); border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); box-shadow: 0 6px 18px rgba(0,0,0,0.35); object-fit: cover; background:#111; }
+  .team-panel { display:flex; align-items:center; gap:10px; }
+  .team-meta { display:flex; flex-direction:column; line-height:1.1; }
+  /* team name labels removed in favor of scorebug */
+  .big-score { font-size: clamp(1.4rem, 3.6vh, 2.1rem); font-weight: 900; letter-spacing:.5px; }
+  /* Keep legacy #score but hide to avoid double display */
+  #score { display:none; }
+  /* Scorebug styles */
+  .scorebug { display:flex; align-items:center; gap:16px; justify-content:center; background:
+      linear-gradient(135deg, rgba(0,32,64,0.55) 0%, rgba(0,170,200,0.18) 55%, rgba(0,255,255,0.08) 100%),
+      radial-gradient(circle at 30% 120%, rgba(0,234,255,0.35), transparent 60%);
+    background-blend-mode: overlay, normal;
+    border:1px solid rgba(255,255,255,0.32);
+    border-radius:18px; padding:10px 16px;
+    box-shadow: 0 8px 26px -6px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.10), inset 0 0 22px -4px rgba(0,200,255,0.25);
+    backdrop-filter: blur(12px) saturate(150%);
+  }
+  .scorebug .team { display:flex; align-items:center; gap:10px; }
+  .scorebug .abbr { font-weight:800; letter-spacing:.6px; opacity:.98; font-size: 1rem; }
+  .scorebug .score { font-weight:900; font-size:1.2rem; letter-spacing:.45px; background: rgba(255,255,255,0.22); border:1px solid rgba(255,255,255,0.28); padding:5px 10px; border-radius:10px; }
+  .scorebug img { width:38px; height:38px; border-radius:50%; border:2px solid rgba(255,255,255,0.25); object-fit:cover; background:#111; box-shadow:0 3px 10px rgba(0,0,0,0.35); }
+  .scorebug .team.active .abbr { color:#00eaff; text-shadow:0 0 10px #00eaff55; }
+  .scorebug .team.active .score { border-color:#00eaff; box-shadow: inset 0 0 10px #00eaff55; }
+  .score-info { display:flex; align-items:center; gap:16px; justify-content:center; align-self: flex-start; }
+  .inning-pill { padding: 7px 12px; border-radius: 12px; background: rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.22); font-weight:800; letter-spacing:.45px; }
+  .outs { display:flex; align-items:center; gap:7px; }
+  .outs .dot { width:11px; height:11px; border-radius:50%; background: rgba(255,255,255,0.35); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.28); }
+  .outs .dot.on { background:#ef4444; box-shadow:0 0 14px rgba(239,68,68,0.6); }
+  .bases { position:relative; width:44px; height:44px; }
+  .bases .base { position:absolute; width:13px; height:13px; transform: rotate(45deg); background: rgba(255,255,255,0.24); border:1px solid rgba(255,255,255,0.30); }
+  .bases .base.active { background:#fbbf24; border-color:#fbbf24; box-shadow:0 0 10px rgba(251,191,36,0.6); }
+  /* Base positions: second at top, third left, first right, home bottom (optional) */
+  .bases .second { left:50%; top:0%; transform:translate(-50%, 0) rotate(45deg); }
+  .bases .first { right:0%; top:50%; transform:translate(0, -50%) rotate(45deg); }
+  .bases .third { left:0%; top:50%; transform:translate(0, -50%) rotate(45deg); }
+  .bases .home { left:50%; bottom:0%; transform:translate(-50%, 0) rotate(45deg); opacity:.4; }
+  .last-play-inline { display:inline-block; max-width: clamp(140px, 24vw, 420px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity:.9; font-size: clamp(0.8rem, 1.8vh, 1rem); padding: 4px 8px; border-radius: 10px; background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); color: #e5e7eb; margin-left: 10px; }
+  /* Lineup panels (top corners) */
+  .lineup-panel { display:flex; flex-direction:column; gap:4px; background: rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.18); border-radius: 10px; padding:6px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); font-size: 0.82rem; overflow:hidden; }
+  #lineup-away-panel, #lineup-home-panel { position:absolute; top:0; width:300px; height:340px; max-height:340px; }
+  #lineup-away-panel { left:0; }
+  #lineup-home-panel { right:0; }
+  .lineup-panel.lineup-compact { --chip-gap:4px; }
+  .lineup-title { font-weight: 800; letter-spacing: .3px; opacity:.95; display:flex; align-items:center; justify-content:space-between; gap:8px; font-size: 0.9rem; }
+  .lineup-rows { display:flex; flex-direction:column; gap:2px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; flex:1; }
+  .lu-item { display:flex; flex-direction:column; padding:4px 6px; border-radius:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); gap:3px; min-width:0; transition:all .18s ease; }
+  .lu-item.compact { padding:2px 4px; background:rgba(255,255,255,0.04); }
+  .lu-item.compact .lu-num { opacity:.45; }
+  .lu-item.compact .lu-name { font-size:.62rem; }
+  .lu-item.compact .lu-hand { transform:scale(.85); opacity:.75; }
+  .lu-item.compact .lu-chip { transform:scale(.82); transform-origin:left center; font-size:.48rem; padding:2px 4px 2px; }
+  .lu-item.compact .lu-chips { gap:2px; }
+  .lu-head { display:flex; align-items:center; gap:6px; min-width:0; }
+  .lu-num { width:1.1em; font-weight:600; opacity:.65; text-align:right; }
+  .lu-name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; letter-spacing:.3px; }
+  .lu-hand { font-size:.65rem; font-weight:700; padding:2px 5px; border-radius:6px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.18); letter-spacing:.5px; }
+  .lu-chips { display:flex; flex-wrap:wrap; gap: var(--chip-gap,4px); }
+  .lu-chip { font-size:.70rem; line-height:1.05; padding:4px 7px 4px; border-radius:7px; background:rgba(255,255,255,0.13); border:1px solid rgba(255,255,255,0.20); font-weight:600; letter-spacing:.4px; color:#e5e7eb; }
+  .lu-item.active .lu-chip { box-shadow:0 0 0 1px #00eaff55, 0 0 10px #00eaff55; }
+  .lu-chip.metric { background:linear-gradient(135deg, rgba(0,234,255,0.15), rgba(0,160,255,0.10)); border-color:rgba(0,214,255,0.35); }
+  .lu-item.active { background:rgba(0,234,255,0.12); border-color:#00eaff66; box-shadow:0 0 0 1px #00eaff55, 0 0 10px #00eaff55; }
+  .lu-item.active .lu-name { color:#00eaff; }
+  .lu-item.active .lu-hand { border-color:#00eaffaa; background:rgba(0,234,255,0.25); }
+  .lu-chip.dim { opacity:.55; }
+  @media (max-width: 1100px){
+    .lineup-panel.lineup-compact { max-width:240px; }
+    .lu-chip { font-size:.58rem; }
+  }
+  #field-container { height: 86%; width: auto; aspect-ratio: 1/1; margin: 0; position: relative; border-radius: 50%; box-shadow: 0 12px 48px rgba(0,0,0,0.25); background: radial-gradient(circle at 50% 50%, #2f8f2f 0%, #257a25 55%, #1e6a1e 85%); overflow: visible; border: 4px solid #f5f5f5; justify-self: center; align-self: center; transform: translateY(-6%); }
+  #field-container { width: auto; aspect-ratio: 1/1; margin: 0; position: relative; border-radius: 50%; box-shadow: 0 12px 48px rgba(0,0,0,0.25); background: radial-gradient(circle at 50% 50%, #2f8f2f 0%, #257a25 55%, #1e6a1e 85%); overflow: visible; border: 4px solid #f5f5f5; justify-self: center; align-self: center; transform: translateY(-6%); }
+  .player-photo { position: absolute; width: 72px; height: 72px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.25), 0 0 24px 4px #00eaff88; background: rgba(255,255,255,0.18); backdrop-filter: blur(2px); pointer-events: auto; transform: translate(-50%, -50%); z-index: 5; }
+  .base-photo { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #ffd700; box-shadow: 0 4px 16px rgba(255,215,0,0.25), 0 0 24px 4px #ffd70088; background: rgba(255,255,255,0.18); backdrop-filter: blur(2px); transform: translate(-50%, -50%); z-index: 5; }
+  .player-card { position: relative; width: clamp(220px, 22vw, 340px); height: min(460px, 100%); max-height: 100%; background: rgba(255,255,255,0.06); border-radius: 20px; box-shadow: 0 10px 36px rgba(0,0,0,0.5), 0 0 40px 10px rgba(56,189,248,0.12); padding: 12px; border: 1px solid rgba(255,255,255,0.08); color:#e5e7eb; align-self: center; }
+  /* RNG badge and glow styles */
+  .rng-badge { min-width: 64px; text-align: center; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#e5e7eb; font-weight: 800; letter-spacing: .5px; }
+  .glow-batter { box-shadow: 0 0 0 2px rgba(59,130,246,0.6), 0 0 24px 8px rgba(59,130,246,0.35), 0 10px 36px rgba(0,0,0,0.5) !important; }
+  .glow-pitcher { box-shadow: 0 0 0 2px rgba(239,68,68,0.65), 0 0 24px 8px rgba(239,68,68,0.35), 0 10px 36px rgba(0,0,0,0.5) !important; }
+  #play-input { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn { font-size: 1rem; padding: 10px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); color: #0a0f14; background: linear-gradient(90deg, #0ea5e9 0%, #22d3ee 100%); cursor: pointer; box-shadow: 0 6px 18px rgba(14,165,233,0.35); margin: 6px; }
+  #stats-display { color: #e5e7eb; background: rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.06); }
+  /* Bottom bar adjustments */
+  </style>
+</head>
+<body>
+  <div id="game-screen" class="screen">
+    <div id="scoreboard">
+      <div class="team-panel" style="justify-content:flex-start; align-self:start;">
+        <div id="lineup-away-panel" class="lineup-panel lineup-compact" style="max-width: 280px;">
+          <div class="lineup-title"><span id="lineup-away-title">Away</span></div>
+          <div id="lineup-away-rows" class="lineup-rows"></div>
+        </div>
+      </div>
+      <div class="score-info">
+        <div class="scorebug">
+          <div class="team side away">
+            <img id="pad-logo-away" alt="Away logo" />
+            <span id="pad-away-abbr" class="abbr">AWY</span>
+            <span id="pad-away-score" class="score">0</span>
+          </div>
+          <div class="mid" style="display:flex;align-items:center;gap:12px;">
+            <span class="inning-pill"><span id="inning-arrow-dup">▲</span><span id="inning-number-dup">1</span></span>
+            <div class="bases">
+              <span class="base second" id="base-ind-second-dup"></span>
+              <span class="base third" id="base-ind-third-dup"></span>
+              <span class="base first" id="base-ind-first-dup"></span>
+              <span class="base home" id="base-ind-home-dup"></span>
+            </div>
+            <div class="outs" id="outs-indicator-dup">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+          <div class="team side home">
+            <span id="pad-home-score" class="score">0</span>
+            <span id="pad-home-abbr" class="abbr">HOM</span>
+            <img id="pad-logo-home" alt="Home logo" />
+          </div>
+        </div>
+      </div>
+      <div class="team-panel" style="justify-content:flex-end; align-self:start;">
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+          <div id="lineup-home-panel" class="lineup-panel lineup-compact" style="max-width: 280px; text-align:left;">
+            <div class="lineup-title"><span id="lineup-home-title">Home</span></div>
+            <div id="lineup-home-rows" class="lineup-rows"></div>
+          </div>
+        </div>
+      </div>
+      <div style="grid-column:1 / span 3; display:flex; justify-content:center; margin-top:6px;">
+        <span id="last-play-inline" class="last-play-inline" title="Last play" style="max-width: min(800px,80vw); text-align:center;">—</span>
+        <span id="weather-badge" style="margin-left:12px;padding:4px 10px;border-radius:10px;font-size:.65rem;letter-spacing:.5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#d6f4ff;display:none;align-self:center;">WX</span>
+      </div>
+    </div>
+    
+
+  <div style="display:grid;grid-template-columns:1fr;align-items:center;justify-content:center;width:100%;height:100%;min-height:0;">
+  <div id="field-container" style="justify-self:center;">
+      <!-- Field decoration overlay -->
+      <div id="field-overlay" style="position:absolute;inset:0;pointer-events:none;z-index:0;">
+        <!-- Warning track -->
+        <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:98%;height:98%;border-radius:50%;background:rgba(168,122,65,0.5);"></div>
+        <!-- Grass radial highlights -->
+        <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 45%, rgba(255,255,255,0.06) 0%, transparent 60%);"></div>
+  <!-- Infield dirt diamond (centered between Home (88%) and Second (52%): ~70%) -->
+  <div style="position:absolute;left:50%;top:70%;transform:translate(-50%,-50%) rotate(45deg);width:36%;height:36%;background:rgba(170,120,70,0.92);border:3px solid #f4e6d0;box-shadow:0 3px 12px rgba(0,0,0,0.25);"></div>
+        <!-- Baselines (foul lines from home to LF/RF corners) -->
+        <div style="position:absolute;left:50%;top:88%;width:2px;height:58%;background:#fff;transform-origin:top center;transform:translate(-50%, -100%) rotate(-45deg);opacity:.9;"></div>
+        <div style="position:absolute;left:50%;top:88%;width:2px;height:58%;background:#fff;transform-origin:top center;transform:translate(-50%, -100%) rotate(45deg);opacity:.9;"></div>
+        <!-- Batter's boxes (simple) -->
+        <div style="position:absolute;left:47.2%;top:88.5%;width:3.8%;height:1.4%;background:rgba(255,255,255,0.85);transform:translate(-50%,-50%);"></div>
+        <div style="position:absolute;left:52.8%;top:88.5%;width:3.8%;height:1.4%;background:rgba(255,255,255,0.85);transform:translate(-50%,-50%);"></div>
+        <!-- Pitcher's mound -->
+        <div id="mound" style="position:absolute;left:50%;top:56%;transform:translate(-50%,-50%);width:5.2%;height:5.2%;border-radius:50%;background:rgba(170,120,70,0.95);border:3px solid #f4e6d0;box-shadow:0 2px 8px rgba(0,0,0,0.25);"></div>
+        <!-- Base plates (static visuals) -->
+        <div id="plate-home" class="home-plate" style="position:absolute;width:3.6%;height:3.6%;transform:translate(-50%,-50%);clip-path:polygon(50% 100%, 0% 50%, 0% 0%, 100% 0%, 100% 50%);background:#fff;border:2px solid #eee;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>
+        <div id="plate-first" class="base-plate" style="position:absolute;width:3.2%;height:3.2%;transform:translate(-50%,-50%) rotate(45deg);background:#fff;border:2px solid #eee;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>
+        <div id="plate-second" class="base-plate" style="position:absolute;width:3.2%;height:3.2%;transform:translate(-50%, -50%) rotate(45deg);background:#fff;border:2px solid #eee;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>
+        <div id="plate-third" class="base-plate" style="position:absolute;width:3.2%;height:3.2%;transform:translate(-50%,-50%) rotate(45deg);background:#fff;border:2px solid #eee;box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>
+        <!-- On-deck circle (shows next batter) -->
+        <div id="on-deck" class="on-deck-circle" title="On Deck" style="position:absolute;left:64%;top:94%;transform:translate(-50%,-50%);width:6.5%;height:6.5%;border-radius:50%;border:3px solid #fff;background:#223;box-shadow:0 2px 8px rgba(0,0,0,0.25);background-size:cover;background-position:center;pointer-events:auto;"></div>
+      </div>
+      <div class="defense-positions">
+        <div class="player-photo" id="pos-pitcher" title="Pitcher"></div>
+        <div class="player-photo" id="pos-catcher" title="Catcher"></div>
+        <div class="player-photo" id="pos-first" title="First Base"></div>
+        <div class="player-photo" id="pos-second" title="Second Base"></div>
+        <div class="player-photo" id="pos-third" title="Third Base"></div>
+        <div class="player-photo" id="pos-short" title="Shortstop"></div>
+        <div class="player-photo" id="pos-left" title="Left Field"></div>
+        <div class="player-photo" id="pos-center" title="Center Field"></div>
+        <div class="player-photo" id="pos-right" title="Right Field"></div>
+      </div>
+      <div class="base-photo" id="base-first" title="Runner on First"></div>
+      <div class="base-photo" id="base-second" title="Runner on Second"></div>
+      <div class="base-photo" id="base-third" title="Runner on Third"></div>
+      <div class="base-photo" id="base-home" title="Batter"></div>
+      <!-- Removed in-field controls; buttons moved to bottom rail -->
+      </div>
+  <div id="floating-cards" style="position:fixed;left:10px;right:10px;bottom:calc(70px + 12px);display:flex;justify-content:space-between;gap:12px;pointer-events:none;z-index:1201;">
+    <div id="batter-card" class="player-card" style="width:340px;max-width:32vw;pointer-events:auto;"></div>
+    <div id="pitcher-card" class="player-card" style="width:340px;max-width:32vw;pointer-events:auto;"></div>
+  </div>
+    </div>
+
+  <div id="stats-display" style="display:none"></div>
+
+  <div id="play-input" style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:8px 10px;position:fixed;left:6px;right:6px;bottom:6px;z-index:10001;">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+        <button id="settings-btn" class="btn" type="button" title="Settings">⚙️</button>
+        <button id="boxscore-btn" class="btn" type="button" title="Box Score">Box Score</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;justify-self:center;">
+        <button id="in-play-btn" class="btn" type="button" style="min-width:120px;">In Play</button>
+        <button id="out-btn" class="btn" type="button" style="min-width:100px;">Out</button>
+        <div id="rng-display" class="rng-badge" title="Random number">—</div>
+        <button id="rng-reroll" class="btn" type="button" title="Re-roll random number" style="min-width:90px;">Re-roll</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;justify-self:end;">
+        <button id="undo-btn" class="btn" type="button">Undo</button>
+        <button id="redo-btn" class="btn" type="button">Redo</button>
+      </div>
+    </div>
+  </div>
+  <script src="main.js"></script>
+  <script>
+    // In-game weather visuals: field tint & precipitation overlay
+    (function(){
+      function loadSettings(){ try{ return JSON.parse(localStorage.getItem('ibl.gameSettings')||'null'); }catch(_){ return null; } }
+      function loadActualTemp(){ try{ const v = localStorage.getItem('ibl.gameSettings.actualTemp'); return v? parseInt(v,10): null; }catch(_){ return null; } }
+      function applyBadge(){
+        const badge = document.getElementById('weather-badge'); if(!badge) return;
+        const s = loadSettings(); if(!s){ badge.style.display='none'; return; }
+        const t = loadActualTemp();
+        const bits=[]; if(t!=null) bits.push(t+'°F'); bits.push(s.temperature); bits.push(s.sky); if(s.sky==='Cloudy' && s.precipitation!=='None') bits.push(s.precipitation);
+        badge.textContent = bits.join(' • ');
+        badge.style.display='inline-block';
+        // Color accent by temperature
+        let hue=195; if(s.temperature==='Hot') hue=14; else if(s.temperature==='Cool') hue=205; else if(s.temperature==='Cold') hue=215; else hue=185;
+        badge.style.background = `linear-gradient(120deg, hsla(${hue},70%,45%,0.25), hsla(${hue},70%,30%,0.18))`;
+        badge.style.borderColor = `hsla(${hue},70%,55%,0.55)`;
+      }
+      function precipitationLayer(){
+        let layer = document.getElementById('precip-layer');
+        if(!layer){
+          layer = document.createElement('canvas');
+          layer.id='precip-layer';
+          // Place behind gameplay UI but above base page background
+          Object.assign(layer.style,{ position:'fixed', inset:'0', pointerEvents:'none', zIndex:0 }); // precipitation base layer
+          // Insert near top so typical content (field container etc.) has higher stacking if it sets z-index >2
+          const first = document.body.firstElementChild;
+          if(first) document.body.insertBefore(layer, first); else document.body.appendChild(layer);
+        }
+        return layer;
+      }
+      function animate(){
+        const s = loadSettings(); if(!s) return;
+        const precip = (s.sky==='Cloudy')? s.precipitation : 'None';
+        const canvas = precipitationLayer(); const ctx = canvas.getContext('2d');
+        function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        resize(); window.addEventListener('resize', resize);
+        let particles=[]; let lastMode='';
+        function reset(){ particles=[]; }
+        function spawn(){
+          const w=canvas.width, h=canvas.height;
+          if(precip==='None'){ particles=[]; return; }
+          const target = precip==='Snow'? 180 : (precip==='Fog'? 60 : 340); // a little denser for rain realism
+          while(particles.length<target){
+            particles.push({
+              x:Math.random()*w,
+              y:Math.random()*h,
+              r: precip==='Snow'? (1+Math.random()*2.2) : (precip==='Fog'? (120+Math.random()*140) : (0.4+Math.random()*0.9)),
+              // Velocity: faster rain, subtle horizontal drift, slower snow, gentle fog drift
+              vy: precip==='Snow'? (25+Math.random()*35)/60 : (precip==='Fog'? 4/60 : (220+Math.random()*260)/60),
+              vx: precip==='Fog'? (Math.random()-.5)*8/60 : (precip==='Snow'? (Math.random()-.5)*12/60 : (Math.random()-.5)*30/60),
+              a: precip==='Fog'? (0.03+Math.random()*0.04) : (precip==='Snow'? (0.35+Math.random()*0.25) : (0.55+Math.random()*0.35)),
+              len: precip==='Snow'? 0 : (precip==='Fog'? 0 : (12+Math.random()*26))
+            });
+          }
+          if(particles.length>target) particles.length = target;
+        }
+        function tintField(){
+          const fc = document.getElementById('field-container'); if(!fc) return;
+          let overlay = document.getElementById('field-weather-overlay');
+          if(!overlay){
+            overlay = document.createElement('div'); overlay.id='field-weather-overlay';
+            Object.assign(overlay.style,{ position:'absolute', inset:'0', borderRadius:'50%', mixBlendMode:'overlay', pointerEvents:'none', zIndex:3 });
+            fc.appendChild(overlay);
+          }
+          let gradient='';
+          switch(s.sky){
+            case 'Clear': gradient='radial-gradient(circle at 50% 30%, rgba(255,255,255,0.10), rgba(255,255,255,0) 65%)'; break;
+            case 'Partly Cloudy': gradient='radial-gradient(circle at 40% 25%, rgba(210,230,255,0.18), rgba(255,255,255,0) 70%)'; break;
+            case 'Cloudy': gradient='radial-gradient(circle at 55% 35%, rgba(180,200,220,0.22), rgba(80,90,110,0.10) 55%, rgba(30,40,60,0.0) 80%)'; break;
+          }
+          // Temperature tint overlay
+          let tempOverlay='';
+          if(s.temperature==='Hot') tempOverlay='linear-gradient(180deg, rgba(255,90,0,0.15), rgba(255,0,0,0) 60%)';
+          else if(s.temperature==='Cold') tempOverlay='linear-gradient(180deg, rgba(120,180,255,0.18), rgba(120,180,255,0) 65%)';
+          else if(s.temperature==='Cool') tempOverlay='linear-gradient(180deg, rgba(90,160,255,0.14), rgba(120,180,255,0) 65%)';
+          overlay.style.background = tempOverlay ? tempOverlay + ',' + gradient : gradient;
+        }
+        function loop(){
+          const sNow = loadSettings() || s; // in case changed mid-game
+          const mode = (sNow.sky==='Cloudy')? sNow.precipitation : 'None';
+          if(mode!==lastMode){ lastMode=mode; reset(); }
+          spawn();
+          ctx.clearRect(0,0,canvas.width,canvas.height);
+            if(mode!=='None'){
+              if(mode==='Fog') ctx.globalCompositeOperation='lighter'; else ctx.globalCompositeOperation='source-over';
+              particles.forEach(p=>{
+                if(mode==='Fog'){
+                  ctx.beginPath();
+                  const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+                  grd.addColorStop(0,`rgba(200,220,255,${p.a})`);
+                  grd.addColorStop(1,'rgba(200,220,255,0)');
+                  ctx.fillStyle=grd; ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+                } else if(mode==='Snow'){
+                  ctx.beginPath();
+                  ctx.fillStyle = `rgba(255,255,255,${p.a})`; ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+                } else { // Rain improved: longer angled streaks with motion blur effect
+                  const speedFactor = p.vy * 60; // approximate px per frame (reduced for slower rain)
+                  const len = (p.len||18) * 0.75; // shorten slightly for slower aesthetic
+                  const dx = p.vx * (len*3); // horizontal component
+                  const dy = speedFactor * 0.9 + len; // vertical extension
+                  ctx.strokeStyle = `rgba(180,210,255,${p.a})`;
+                  ctx.lineWidth = 1.1;
+                  ctx.beginPath();
+                  ctx.moveTo(p.x, p.y);
+                  ctx.lineTo(p.x + dx, p.y + dy);
+                  ctx.stroke();
+                }
+                // advance
+                p.x+=p.vx; p.y+=p.vy;
+                if(p.y>canvas.height+40){ p.y=-10; p.x=Math.random()*canvas.width; }
+                if(p.x<-40) p.x=canvas.width+20; else if(p.x>canvas.width+40) p.x=-20;
+              });
+            }
+          requestAnimationFrame(loop);
+        }
+        tintField();
+        loop();
+      }
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>{ applyBadge(); animate(); }); else { applyBadge(); animate(); }
+    })();
+  </script>
+  <script>
+    // Auto-size the field to fit available space between the cards and within viewport height
+    (function(){
+      function autosize(){
+        const wrap = document.querySelector('#game-screen > div[style*="grid-template-columns"]');
+        const field = document.getElementById('field-container');
+    const scoreboard = document.getElementById('scoreboard');
+        const playInput = document.getElementById('play-input');
+        if(!wrap || !field) return;
+    const vw = window.innerWidth, vh = window.innerHeight;
+  const sbH = scoreboard ? scoreboard.getBoundingClientRect().height : 0;
+  // playInput is fixed; reserve its height explicitly
+  const ctlH = playInput ? (playInput.getBoundingClientRect().height + 12 /* bottom gap */) : 0;
+    const verticalPadding = 18; // combined paddings/gaps safety
+  const availH = Math.max(0, vh - sbH - ctlH - verticalPadding);
+        // Compute horizontal space: use actual grid track sizes so the middle column centers precisely
+        const gap = 16; // grid gap (keep in sync with CSS)
+        const horizontalPadding = 32; // safety
+        const wrapRectW = wrap.getBoundingClientRect().width || vw;
+        let leftTrack = 0, rightTrack = 0;
+        try {
+          const cs = getComputedStyle(wrap);
+          // gridTemplateColumns typically resolves to pixel values like "340px 810px 340px"
+          const cols = (cs.gridTemplateColumns || '').split(' ').filter(Boolean);
+          if(cols.length >= 3){
+            const first = parseFloat(cols[0]);
+            const last = parseFloat(cols[cols.length-1]);
+            if(!isNaN(first)) leftTrack = first;
+            if(!isNaN(last)) rightTrack = last;
+          }
+        } catch(_e) { /* fallback below */ }
+        if(leftTrack === 0 || rightTrack === 0){
+          // Fallback to measuring card element widths
+          const leftEl = document.getElementById('batter-card');
+          const rightEl = document.getElementById('pitcher-card');
+          leftTrack = leftEl ? leftEl.getBoundingClientRect().width : 0;
+          rightTrack = rightEl ? rightEl.getBoundingClientRect().width : 0;
+        }
+        const maxW = Math.max(200, wrapRectW - leftTrack - rightTrack - gap*2 - horizontalPadding);
+        // Field is a square: pick the limiting dimension
+  const side = Math.floor(Math.min(availH, maxW));
+        field.style.height = side + 'px';
+        field.style.width = side + 'px';
+        // Ensure controls overlay stays accessible above the bottom
+        const controls = document.getElementById('field-controls');
+        if(controls){ controls.style.bottom = (side < 360 ? '6%' : '10%'); }
+      }
+      const ro = new ResizeObserver(autosize);
+      window.addEventListener('resize', autosize);
+      window.addEventListener('orientationchange', autosize);
+      window.addEventListener('load', autosize);
+  // scorebug now lives in the scoreboard; no extra pad bar
+      document.addEventListener('DOMContentLoaded', ()=>{
+        autosize();
+        const wrap = document.querySelector('#game-screen > div[style*="grid-template-columns"]');
+        if(wrap) ro.observe(wrap);
+      });
+    })();
+
+  </script>
+</body>
+</html>

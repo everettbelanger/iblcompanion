@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pick Matchup</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body{ margin:0; font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif; background:#050a11; color:#e9eef5; overflow:hidden; }
+    .bg-canvas{ position:fixed; inset:0; width:100%; height:100%; z-index:-1; }
+    .layer-noise{ position:fixed; inset:0; pointer-events:none; background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHgwK89aXzuQAAAABJRU5ErkJggg=="); opacity:.18; mix-blend-mode:overlay; }
+    .matchup-wrap{ min-height:100vh; display:flex; flex-direction:column; }
+    header.top{ padding: clamp(14px,2.4vw,32px); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:20px; }
+    header.top h1{ margin:0; font-size: clamp(1.4rem,2.6vw,2.4rem); letter-spacing:.6px; font-weight:800; background:linear-gradient(90deg,#fff,#b2eaff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .arena-bar{ position:relative; padding: 12px clamp(16px,4vw,60px); background:linear-gradient(90deg,#0b2436,#0d3550); border-top:1px solid #12384f; border-bottom:1px solid #12384f; display:flex; justify-content:center; align-items:center; gap:40px; font-size:.8rem; letter-spacing:.5px; text-transform:uppercase; color:#9dd8ff; }
+    .arena-bar span{ display:flex; align-items:center; gap:6px; }
+    .versus-stage{ flex:1; display:flex; align-items:center; justify-content:center; padding: clamp(18px,3.5vw,54px); position:relative; }
+  .versus-grid{ width:min(1500px,96vw); display:grid; grid-template-columns:1fr auto 1fr; grid-template-areas: 'away vs home'; align-items:start; gap: clamp(24px,3vw,54px); }
+  .versus-grid > #card-away{ grid-area: away; }
+  .versus-grid > .vs-center{ grid-area: vs; }
+  .versus-grid > #card-home{ grid-area: home; }
+    .team-card{ position:relative; background:linear-gradient(160deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04)); border:1px solid #ffffff1c; border-radius:34px; padding: clamp(20px,2.4vw,40px); display:flex; flex-direction:column; gap:20px; backdrop-filter: blur(10px); box-shadow:0 18px 48px -16px #000a, 0 4px 18px -4px #0008; }
+    .team-card:before{ content:""; position:absolute; inset:0; background:radial-gradient(circle at 35% 20%,rgba(255,255,255,.16),transparent 70%); opacity:0; transition:.6s; pointer-events:none; }
+    .team-card:hover:before{ opacity:1; }
+    .team-header{ display:flex; align-items:center; gap:22px; }
+    .logo-outer{ width:160px; height:160px; min-width:160px; border-radius:28px; background:#091826; border:2px solid #ffffff22; display:grid; place-items:center; position:relative; overflow:hidden; box-shadow:0 6px 24px -6px #000c; }
+    .logo-outer img{ width:100%; height:100%; object-fit:contain; display:none; filter:drop-shadow(0 4px 10px rgba(0,0,0,.7)); }
+    .logo-outer span{ font-size:3rem; font-weight:900; letter-spacing:3px; opacity:.85; }
+    .team-meta h2{ margin:0 0 4px; font-size:1.6rem; letter-spacing:.6px; font-weight:800; }
+    .team-meta .sub{ font-size:.8rem; letter-spacing:.35px; opacity:.75; text-transform:uppercase; display:flex; gap:16px; flex-wrap:wrap; }
+    .selectors{ display:flex; flex-direction:column; gap:12px; }
+    select{ padding:12px 14px; border-radius:14px; border:1px solid #ffffff33; background:rgba(0,0,0,0.35); color:#fff; font-size:.9rem; letter-spacing:.4px; }
+  .team-picker{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; background:linear-gradient(145deg,#0f2533,#071722); border:1px solid #1a4b63; border-radius:16px; padding:10px 12px; box-shadow:inset 0 0 0 1px #ffffff10; }
+  .pick-nav{ border:none; border-radius:12px; padding:10px 14px; background:linear-gradient(100deg,#0c5b7b,#1197c6); color:#fff; font-weight:800; cursor:pointer; box-shadow:0 6px 16px -6px #00b2ff88; display:none; }
+  .pick-nav:hover{ transform:translateY(-1px); }
+  .pick-display{ display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; user-select:none; }
+  .pick-name{ font-weight:900; letter-spacing:.4px; font-size:1.05rem; text-align:center; }
+  .pick-sub{ opacity:.75; font-size:.75rem; letter-spacing:.3px; text-align:center; }
+  .controller-group{ display:flex; align-items:center; gap:10px; }
+  .controller-group label{ font-size:.75rem; opacity:.7; letter-spacing:.4px; }
+    .vs-center{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; }
+    .vs-badge{ font-size: clamp(2.8rem,5vw,6rem); font-weight:900; letter-spacing:-4px; background:linear-gradient(90deg,#fff,#79e8ff,#fff); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:0 0 30px #00c8ff66; }
+    .start-btn{ padding:18px 42px; font-size:1.15rem; border-radius:50px; border:1px solid #ffffff33; background:linear-gradient(90deg,#0078d4,#00eaff); cursor:pointer; color:#fff; font-weight:700; letter-spacing:.5px; box-shadow:0 12px 32px -10px #00a9e988,0 4px 12px -2px #000a; transition:.35s; }
+    .start-btn:hover{ transform:translateY(-4px); box-shadow:0 18px 40px -12px #00c4ffaa,0 6px 16px -4px #000a; }
+    .side-label{ position:absolute; top:14px; left:18px; font-size:.65rem; letter-spacing:.5px; background:#0d3147; padding:4px 10px; border-radius:999px; border:1px solid #155676; text-transform:uppercase; color:#9dd8ff; }
+    .footer-bar{ padding:14px clamp(20px,4vw,50px); font-size:.65rem; letter-spacing:.4px; background:linear-gradient(90deg,#0d3147,#082231); border-top:1px solid #12384f; color:#71b8d6; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+    .btn.secondary{ background:linear-gradient(90deg,#3a3f44,#58636f); padding:10px 18px; border-radius:14px; border:none; color:#fff; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.28); }
+    .btn.secondary:hover{ transform:translateY(-2px); }
+    @media (max-width:1250px){
+      .versus-grid{ grid-template-columns:1fr; grid-template-areas: 'away' 'vs' 'home'; }
+      .vs-center{ flex-direction:row; }
+      .logo-outer{ width:140px; height:140px; min-width:140px; }
+    }
+    @media (max-width:780px){ .team-header{ flex-direction:column; align-items:flex-start; } .logo-outer{ width:120px; height:120px; min-width:120px; } }
+  </style>
+</head>
+<body>
+  <canvas class="bg-canvas" id="matchup-bg"></canvas>
+  <div class="layer-noise"></div>
+  <div class="matchup-wrap">
+    <header class="top">
+      <h1>Pre-Game Matchup</h1>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn secondary" id="back">Back</button>
+      </div>
+    </header>
+    <div class="arena-bar" id="arena-bar">
+      <span id="venue">Venue: TBD</span>
+      <span id="weather">Weather: Indoor</span>
+      <span id="note">Configure teams below</span>
+    </div>
+    <section class="versus-stage">
+      <div class="versus-grid">
+        <div class="team-card" id="card-home">
+          <div class="side-label">Home</div>
+          <div class="team-header">
+            <div class="logo-outer" id="home-logo"><img id="home-logo-img" alt="Home logo" /><span id="home-logo-txt">HOME</span></div>
+            <div class="team-meta">
+              <h2 id="home-name">Select Team</h2>
+              <div class="selectors">
+                <select id="home-team" style="display:none;"></select>
+                <div class="team-picker">
+                  <button class="pick-nav" id="home-prev" aria-label="Previous team">◀</button>
+                  <div class="pick-display" id="home-pick">
+                    <div class="pick-name" id="home-pick-name">Team</div>
+                    <div class="pick-sub" id="home-pick-sub">Initials</div>
+                  </div>
+                  <button class="pick-nav" id="home-next" aria-label="Next team">▶</button>
+                </div>
+                <div class="controller-group">
+                  <label for="home-controller">Controller</label>
+                  <select id="home-controller">
+                    <option>User</option>
+                    <option>Computer</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="vs-center">
+          <div class="vs-badge">VS</div>
+          <button class="start-btn" id="start">Start Game</button>
+          <button class="btn secondary" id="game-settings-btn" style="margin-top:8px;">Game Settings</button>
+        </div>
+        <div class="team-card" id="card-away">
+          <div class="side-label">Away</div>
+          <div class="team-header">
+            <div class="logo-outer" id="away-logo"><img id="away-logo-img" alt="Away logo" /><span id="away-logo-txt">AWAY</span></div>
+            <div class="team-meta">
+              <h2 id="away-name">Select Team</h2>
+              <div class="selectors">
+                <select id="away-team" style="display:none;"></select>
+                <div class="team-picker">
+                  <button class="pick-nav" id="away-prev" aria-label="Previous team">◀</button>
+                  <div class="pick-display" id="away-pick">
+                    <div class="pick-name" id="away-pick-name">Team</div>
+                    <div class="pick-sub" id="away-pick-sub">Initials</div>
+                  </div>
+                  <button class="pick-nav" id="away-next" aria-label="Next team">▶</button>
+                </div>
+                <div class="controller-group">
+                  <label for="away-controller">Controller</label>
+                  <select id="away-controller">
+                    <option>User</option>
+                    <option>Computer</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="footer-bar">
+      <div>Data auto-saved locally • Choose distinct teams.</div>
+      <div style="opacity:.7;">Press Start Game to proceed to lineup selection.</div>
+    </div>
+  </div>
+  <script src="matchup.js"></script>
+  <style>
+    /* Game Settings Modal */
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:999; animation:fadeIn .25s ease; }
+    .modal-panel{ width:min(520px,92vw); background:linear-gradient(145deg,#0f2533,#071722); border:1px solid #1a4b63; border-radius:26px; padding:28px 30px 34px; box-shadow:0 18px 40px -14px #000c, 0 6px 22px -6px #000b; position:relative; font-size:.9rem; }
+  .modal-panel h3{ margin:0 0 12px; font-size:1.35rem; letter-spacing:.6px; font-weight:800; background:linear-gradient(90deg,#fff,#9fe7ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .modal-panel .close-x{ position:absolute; top:10px; right:12px; background:none; border:none; color:#b7d9e7; font-size:1.2rem; cursor:pointer; }
+    .settings-grid{ display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); margin:10px 0 6px; }
+    .settings-group label{ display:block; font-size:.7rem; letter-spacing:.5px; text-transform:uppercase; opacity:.7; margin-bottom:6px; }
+    .settings-group select{ width:100%; padding:10px 12px; border-radius:12px; background:#0d3147; border:1px solid #1e5973; color:#e6f8ff; font-size:.85rem; }
+    .settings-actions{ display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+    .settings-actions button{ padding:12px 20px; border-radius:14px; border:1px solid #1c6a82; cursor:pointer; font-weight:600; letter-spacing:.4px; background:linear-gradient(100deg,#0c5b7b,#1197c6); color:#fff; }
+    .settings-actions button.secondary{ background:linear-gradient(100deg,#3a3f44,#58636f); border-color:#444c55; }
+    .settings-note{ font-size:.65rem; opacity:.55; margin-top:4px; line-height:1.4; }
+    @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+    .select-disabled{ opacity:.45; pointer-events:none; }
+    /* Team Select Modal */
+    .ts-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000; animation:fadeIn .22s ease; }
+  .ts-panel{ width:min(920px,94vw); max-height:90vh; overflow:hidden; background:linear-gradient(145deg,#0f2533,#071722); border:1px solid #1a4b63; border-radius:24px; padding:20px; box-shadow:0 18px 40px -14px #000c, 0 6px 22px -6px #000b; }
+    .ts-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 6px 14px; position:sticky; top:0; background:linear-gradient(145deg,#0f2533,#071722); z-index:1; }
+    .ts-title{ margin:0; font-size:1.2rem; font-weight:800; background:linear-gradient(90deg,#fff,#9fe7ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .ts-close{ border:none; background:none; color:#b7d9e7; font-size:1.1rem; cursor:pointer; }
+  .ts-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:14px; transform-origin: top center; margin: 0 auto; }
+    .ts-tile{ display:flex; flex-direction:column; align-items:center; gap:8px; background:linear-gradient(160deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02)); border:1px solid #ffffff18; border-radius:16px; padding:12px; cursor:pointer; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; animation:tsTileIn .3s ease backwards; }
+    .ts-tile:hover{ transform:translateY(-3px); box-shadow:0 10px 28px -12px #000a; border-color:#2d87a6; }
+    .ts-logo{ width:88px; height:88px; border-radius:12px; background:#091826; border:1px solid #ffffff1c; display:grid; place-items:center; overflow:hidden; }
+    .ts-logo img{ width:100%; height:100%; object-fit:contain; display:none; filter:drop-shadow(0 4px 10px rgba(0,0,0,.7)); }
+    .ts-logo span{ font-size:1.2rem; font-weight:900; opacity:.85; }
+    .ts-name{ font-size:.85rem; text-align:center; opacity:.9; line-height:1.2; }
+    @keyframes tsTileIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+  </style>
+  <script>
+    (function(){
+      const BTN_ID = 'game-settings-btn';
+      const LS_KEY = 'ibl.gameSettings';
+      const TEMP_KEY = 'ibl.gameSettings.actualTemp';
+      function loadSettings(){ try{ const v = JSON.parse(localStorage.getItem(LS_KEY)||'null'); if(v && typeof v==='object') return v; }catch(_){} return { temperature:'Warm', sky:'Clear', precipitation:'None' }; }
+      function saveSettings(s){ try{ localStorage.setItem(LS_KEY, JSON.stringify(s)); }catch(_){} }
+      function genActualTemp(tempCategory){
+        // Define Fahrenheit ranges
+        const ranges = {
+          Hot:[86,102], // 86-102
+          Warm:[72,85],
+          Cool:[55,71],
+          Cold:[38,54]
+        };
+        const r = ranges[tempCategory] || [70,75];
+        const val = Math.round(r[0] + Math.random()*(r[1]-r[0]));
+        return val;
+      }
+      function loadActualTemp(){ try{ const n = localStorage.getItem(TEMP_KEY); if(!n) return null; return parseInt(n,10); }catch(_){ return null; } }
+      function saveActualTemp(v){ try{ localStorage.setItem(TEMP_KEY, String(v)); }catch(_){ } }
+      function applyArenaWeatherDisplay(){
+        const settings = loadSettings();
+        let actual = loadActualTemp();
+        if(actual==null){ actual = genActualTemp(settings.temperature); saveActualTemp(actual); }
+        const venue = document.getElementById('venue');
+        const w = document.getElementById('weather');
+        if(w){
+          const parts = [];
+          parts.push(`${actual}°F`);
+          parts.push(settings.temperature);
+          parts.push(settings.sky);
+          if(settings.sky==='Cloudy' && settings.precipitation!=='None') parts.push(settings.precipitation);
+          w.textContent = 'Weather: ' + parts.join(' • ');
+        }
+      }
+      function applyBackgroundTheme(){
+        const settings = loadSettings();
+        const c = document.getElementById('matchup-bg'); if(!c) return; const ctx = c.getContext('2d');
+        // We'll adjust global hue / overlay effects by hijacking an attribute on canvas for the animation loop to notice.
+        const theme = { sky: settings.sky, precip: settings.precipitation };
+        c.dataset.sky = theme.sky;
+        c.dataset.precip = theme.precip;
+      }
+      function buildModal(){
+        const wrap = document.createElement('div'); wrap.className='modal-backdrop'; wrap.innerHTML = `
+          <div class="modal-panel" role="dialog" aria-modal="true">
+            <button class="close-x" aria-label="Close" id="gs-close">×</button>
+            <h3>Game Settings</h3>
+            <div class="settings-grid">
+              <div class="settings-group">
+                <label for="gs-temperature">Temperature</label>
+                <select id="gs-temperature">
+                  <option>Hot</option>
+                  <option>Warm</option>
+                  <option>Cool</option>
+                  <option>Cold</option>
+                </select>
+              </div>
+              <div class="settings-group">
+                <label for="gs-sky">Sky</label>
+                <select id="gs-sky">
+                  <option>Clear</option>
+                  <option>Partly Cloudy</option>
+                  <option>Cloudy</option>
+                </select>
+              </div>
+              <div class="settings-group">
+                <label for="gs-precip">Precipitation</label>
+                <select id="gs-precip">
+                  <option>None</option>
+                  <option>Thunderstorms</option>
+                  <option>Showers</option>
+                  <option>Snow</option>
+                  <option>Fog</option>
+                </select>
+              </div>
+            </div>
+            <div class="settings-note">Rules: Precipitation allowed only if Sky = Cloudy. Hot: starters BF -4. Cool: starters fatigue threshold +2 BF. Rain check (Thunderstorms/Showers): 5% chance each half-inning to suspend.</div>
+            <div class="settings-actions">
+              <button class="secondary" id="gs-cancel">Cancel</button>
+              <button id="gs-save">Save</button>
+            </div>
+          </div>`;
+        return wrap;
+      }
+      function openModal(){
+        if(document.querySelector('.modal-backdrop')) return; // already open
+        const modal = buildModal();
+        document.body.appendChild(modal);
+        const settings = loadSettings();
+        const tempSel = document.getElementById('gs-temperature');
+        const skySel = document.getElementById('gs-sky');
+        const precipSel = document.getElementById('gs-precip');
+        if(tempSel) tempSel.value = settings.temperature;
+        if(skySel) skySel.value = settings.sky;
+        if(precipSel) precipSel.value = settings.precipitation;
+        function enforce(){
+          if(!skySel || !precipSel) return;
+            const cloudy = skySel.value === 'Cloudy';
+            if(!cloudy){
+              precipSel.value = 'None';
+              precipSel.classList.add('select-disabled');
+            } else {
+              precipSel.classList.remove('select-disabled');
+            }
+        }
+        skySel.addEventListener('change', enforce);
+        enforce();
+        function close(){ modal.remove(); }
+        modal.addEventListener('click', e=>{ if(e.target === modal) close(); });
+        document.getElementById('gs-close').addEventListener('click', close);
+        document.getElementById('gs-cancel').addEventListener('click', close);
+        document.getElementById('gs-save').addEventListener('click', ()=>{
+          const next = {
+            temperature: tempSel.value,
+            sky: skySel.value,
+            precipitation: precipSel.value
+          };
+          saveSettings(next);
+          // Reset stored actual temp so a new one is generated for changed category
+          try{ localStorage.removeItem(TEMP_KEY); }catch(_){ }
+          applyArenaWeatherDisplay();
+          applyBackgroundTheme();
+          close();
+        });
+      }
+      window.addEventListener('DOMContentLoaded', ()=>{
+        const btn = document.getElementById(BTN_ID); if(btn){ btn.addEventListener('click', openModal); }
+        applyArenaWeatherDisplay();
+        applyBackgroundTheme();
+      });
+    })();
+  </script>
+  <script>
+    // Animated background similar to main menu but tailored (load after matchup.js)
+    (function(){
+      const c=document.getElementById('matchup-bg'); if(!c) return; const ctx=c.getContext('2d');
+      function resize(){ c.width=window.innerWidth; c.height=window.innerHeight; }
+      resize(); window.addEventListener('resize', resize);
+      const blobs = Array.from({length:7}).map(()=>({ x:Math.random(), y:Math.random(), r:200+Math.random()*340, dx:(Math.random()-.5)*0.0004, dy:(Math.random()-.5)*0.0004, hue: 200+Math.random()*40 }));
+      let particles = [];
+      function ensureParticles(){
+        const precip = c.dataset.precip||'None';
+        if(precip==='None'){ particles=[]; return; }
+        const target = precip==='Snow'?120: (precip==='Fog'?40:160);
+        if(particles.length===target) return;
+        particles = Array.from({length:target}).map(()=>({
+          x:Math.random()*c.width,
+          y:Math.random()*c.height,
+          r: precip==='Snow'? (1+Math.random()*2) : (precip==='Fog'? (40+Math.random()*60) : (1+Math.random()*2)),
+          vy: precip==='Snow'? (0.3+Math.random()*0.4) : (precip==='Fog'? 0.05 : (1.2+Math.random()*1.4)),
+          vx: precip==='Fog'? (Math.random()-.5)*0.15 : (Math.random()-.5)*0.3,
+          alpha: precip==='Fog'? 0.08+Math.random()*0.07 : 0.55+Math.random()*0.35
+        }));
+      }
+      function drawParticles(){
+        const precip = c.dataset.precip||'None';
+        if(precip==='None') return;
+        ctx.save();
+        if(precip==='Fog'){
+          ctx.globalCompositeOperation='lighter';
+        }
+        particles.forEach(p=>{
+          ctx.beginPath();
+          if(precip==='Fog'){
+            const grd = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+            grd.addColorStop(0,`rgba(200,220,255,${p.alpha})`);
+            grd.addColorStop(1,'rgba(200,220,255,0)');
+            ctx.fillStyle=grd;
+            ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            ctx.fill();
+          } else if(precip==='Snow') {
+            ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+            ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            ctx.fill();
+          } else { // Rain types (Thunderstorms/Showers)
+            ctx.strokeStyle = `rgba(180,220,255,${p.alpha})`;
+            ctx.lineWidth = 1;
+            ctx.moveTo(p.x,p.y);
+            ctx.lineTo(p.x + p.vx*4, p.y + 8);
+            ctx.stroke();
+          }
+          // advance
+          p.x += p.vx; p.y += p.vy;
+          if(p.y > c.height+20){ p.y = -10; p.x = Math.random()*c.width; }
+          if(p.x < -20) p.x = c.width+10; else if(p.x > c.width+20) p.x = -10;
+        });
+        ctx.restore();
+      }
+      function frame(){
+        ctx.clearRect(0,0,c.width,c.height);
+        // background color shift per sky
+        const sky = c.dataset.sky || 'Clear';
+        let baseHue = 210;
+        if(sky==='Clear') baseHue = 205;
+        else if(sky==='Partly Cloudy') baseHue = 215;
+        else if(sky==='Cloudy') baseHue = 225;
+        blobs.forEach(b=>{ b.x+=b.dx; b.y+=b.dy; if(b.x<0||b.x>1) b.dx*=-1; if(b.y<0||b.y>1) b.dy*=-1; const gx=b.x*c.width, gy=b.y*c.height; const hueShift = (sky==='Clear'?0:(sky==='Partly Cloudy'?10:25)); const g=ctx.createRadialGradient(gx,gy,0,gx,gy,b.r); g.addColorStop(0,`hsla(${(b.hue+hueShift)%360},65%,55%,0.30)`); g.addColorStop(1,`hsla(${baseHue},80%,4%,0)`); ctx.fillStyle=g; ctx.beginPath(); ctx.arc(gx,gy,b.r,0,Math.PI*2); ctx.fill(); });
+        ensureParticles();
+        drawParticles();
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pennant Race</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { margin:0; color:#e5e7eb; background: radial-gradient(1000px 700px at 20% -10%, #0b1320 0%, rgba(11,19,32,0.6) 40%, rgba(0,0,0,0) 70%), linear-gradient(180deg, #090d12 0%, #000 100%); }
+    .wrap { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+    h1 { margin: 16px 0; }
+    .grid { display:grid; grid-template-columns: 360px 1fr; gap: 16px; align-items:start; }
+    .panel { background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:16px; }
+    .teams { display:grid; gap:6px; max-height: 50vh; overflow:auto; }
+    .teams label { display:flex; align-items:center; gap:8px; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .bracket { min-height: 60vh; display:flex; gap:16px; overflow:auto; }
+    .col { display:grid; gap:12px; min-width:220px; }
+    .series { background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px; }
+    .series h4 { margin:0 0 6px; font-weight:600; }
+    .series .seed { opacity:.8; margin-right:6px; }
+    .actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 10px; }
+    select, input[type=text] { padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.25); background:rgba(0,0,0,.25); color:#fff; }
+    button.btn { padding:8px 12px; border:none; border-radius:10px; cursor:pointer; background:linear-gradient(90deg,#0078d4,#00eaff); color:#fff; }
+    button.secondary { background:#334; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Pennant Race</h1>
+    <div class="grid">
+      <div class="panel">
+        <div class="row">
+          <label>Teams in bracket</label>
+          <select id="team-count">
+            <option>4</option>
+            <option>6</option>
+            <option>8</option>
+            <option>10</option>
+            <option>12</option>
+            <option>16</option>
+            <option>20</option>
+            <option>24</option>
+            <option>28</option>
+            <option>30</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Seeding</label>
+          <select id="seed-mode">
+            <option value="custom">Custom</option>
+            <option value="random">Randomize</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Series length</label>
+          <select id="series-length">
+            <option value="1">Best of 1</option>
+            <option value="3">Best of 3</option>
+            <option value="5">Best of 5</option>
+            <option value="7">Best of 7</option>
+          </select>
+        </div>
+        <div style="margin:10px 0 6px; font-weight:600;">Select Teams</div>
+        <div id="team-list" class="teams"></div>
+        <div class="actions">
+          <button class="btn secondary" id="back">Back</button>
+          <button class="btn" id="create">Create Bracket</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div id="bracket" class="bracket"><div style="opacity:.7;">Create a bracket to preview.</div></div>
+        <div class="actions">
+          <button class="btn" id="play-next" disabled>Play Next Game</button>
+          <button class="btn secondary" id="save-series" disabled>Save Pennant Race</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="pennant.js"></script>
+</body>
+</html>

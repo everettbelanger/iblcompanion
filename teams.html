@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manage Teams</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Black theme + modern glassy card UI */
+    html, body { background: #000; color: #eef2f7; }
+    #teams-screen{ max-width:980px; margin:40px auto; padding:24px; background:rgba(255,255,255,0.04); border-radius:24px; color:#eef2f7; box-shadow:0 10px 36px rgba(0,0,0,0.65); backdrop-filter: blur(6px); border:1px solid rgba(255,255,255,0.08); }
+    .header{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+  .panel{ background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:18px; padding:16px; box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+    .row{ display:grid; gap:8px; margin:10px 0; }
+    input{ padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background:rgba(0,0,0,0.25); color:#fff; box-shadow: inset 0 2px 6px rgba(0,0,0,0.25); }
+    table{ width:100%; border-collapse:separate; border-spacing:0 10px; }
+    th,td{ text-align:left; padding:10px 10px; vertical-align: top; }
+    thead th { font-weight:800; letter-spacing:.3px; color:#e6f0ff; }
+    .subtle{ font-size:.85rem; opacity:.9; color:#cfe3ff; }
+    .rowbg{ background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.22); border-radius:12px; }
+    .actions{ display:flex; gap:10px; }
+  .btn{ font-size:1rem; padding:10px 18px; border-radius:12px; border:none; color:#fff; background:linear-gradient(90deg,#0ea5e9,#22d3ee); box-shadow:0 8px 16px rgba(0,0,0,0.35); cursor:pointer; }
+  .btn.secondary{ background:#1f2937; border:1px solid rgba(255,255,255,0.12); }
+    code{ background: rgba(0,0,0,0.35); padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div id="teams-screen">
+    <div class="header">
+      <div>
+        <h1 style="margin:0 0 6px;">League Data Console</h1>
+        <div class="hint">Manage teams & import rosters in one place. Stored in <code>localStorage</code>.</div>
+      </div>
+      <div class="actions" style="align-items:flex-start;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn secondary" id="back">Back</button>
+          <button class="btn" id="save-teams">Save Teams</button>
+          <button class="btn" id="export-csv">Export CSV</button>
+          <button class="btn" id="export-json">Export JSON</button>
+          <button class="btn secondary" id="export-data-json" title="Export teams + rosters JSON">Export All</button>
+        </div>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+      <button class="tab sel" data-tab="teams" role="tab" aria-selected="true">Teams</button>
+      <button class="tab" data-tab="import" role="tab" aria-selected="false">Import</button>
+      <button class="tab" data-tab="help" role="tab" aria-selected="false">Help / Examples</button>
+      <span style="flex:1"></span>
+      <div class="mini-summary" style="display:flex;gap:10px;font-size:.7rem;align-items:center;opacity:.85;"></div>
+    </nav>
+    <style>
+      .tab{background:linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0.04));border:1px solid rgba(255,255,255,0.18);padding:8px 16px;border-radius:30px;color:#fff;font-weight:600;cursor:pointer;letter-spacing:.3px;font-size:.8rem;backdrop-filter:blur(8px);box-shadow:0 4px 12px -4px #0009;transition:.25s;}
+      .tab.sel{background:linear-gradient(90deg,#0ea5e9,#22d3ee);box-shadow:0 6px 18px -4px #0ea4e988;}
+      .tab:not(.sel):hover{transform:translateY(-2px);}
+      .hidden{display:none!important;}
+      .import-grid{display:grid;gap:22px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
+      .pill{background:#13202b;border:1px solid #1e3747;padding:6px 10px;border-radius:999px;font-size:.65rem;letter-spacing:.5px;}
+    </style>
+
+    <div class="panel tab-panel" data-panel="teams">
+      <div class="row">
+        <label>Import CSV (format: <code>key,name,initials,logo,base running aggresiveness</code> — last column optional)</label>
+        <input id="teams-csv" type="file" accept=".csv" />
+      </div>
+      <div class="row">
+        <label>Import JSON (array of { key, name, initials, logo })</label>
+        <input id="teams-json" type="file" accept=".json" />
+      </div>
+      <div class="row">
+        <button id="add-team" class="btn secondary">Add Team</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>
+              Key
+              <div class="subtle">Unique identifier used in filenames/links. Letters/numbers only (no spaces). Example: <code>Yankees</code></div>
+            </th>
+            <th>
+              Name
+              <div class="subtle">Full team name for the UI. Example: <code>New York Yankees</code></div>
+            </th>
+            <th>
+              Initials
+              <div class="subtle">2–3 letter code for logos/badges. Example: <code>NYY</code></div>
+            </th>
+            <th>
+              Logo
+              <div class="subtle">Path or URL to a 1:1 image. Example: <code>Logos/yankees.png</code> or a https URL</div>
+            </th>
+            <th>
+              Baserunning %
+              <div class="subtle">Team aggressiveness on taking the extra base (0–100). Used by CPU “Stretch?” logic.</div>
+            </th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="team-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="panel tab-panel hidden" data-panel="import" style="margin-top:0;">
+      <h3 style="margin:0 0 10px;">Bulk Import & Data</h3>
+      <div class="import-grid">
+        <div class="panel" style="margin:0;box-shadow:none;background:rgba(255,255,255,0.05);">
+          <h4 style="margin:0 0 6px;">1. Teams File</h4>
+          <div class="row">
+            <input id="teams-file" type="file" accept=".csv,.json" />
+            <button id="import-teams" class="btn" type="button" disabled style="flex:1;">Import Teams</button>
+          </div>
+          <div id="teams-status" class="status" style="font-size:.7rem;min-height:1.2em;"></div>
+          <div class="hint" style="font-size:.65rem;">CSV headers: name,key,initials,logo (auto-detected if absent).</div>
+        </div>
+        <div class="panel" style="margin:0;box-shadow:none;background:rgba(255,255,255,0.05);">
+          <h4 style="margin:0 0 6px;">2. Rosters</h4>
+          <div class="row">
+            <input id="roster-files" type="file" multiple accept=".csv,.json,.txt" />
+            <button id="import-rosters" class="btn" type="button" disabled style="flex:1;">Import Rosters</button>
+          </div>
+          <div id="rosters-status" class="status" style="font-size:.7rem;min-height:1.2em;"></div>
+          <div class="hint" style="font-size:.65rem;">Roster CSV headers flexible: name,positions,bat,throw etc. TXT lines allowed.</div>
+        </div>
+        <div class="panel" style="margin:0;box-shadow:none;background:rgba(255,255,255,0.05);">
+          <h4 style="margin:0 0 6px;">3. Review & Export</h4>
+          <div class="row" style="gap:6px;flex-wrap:wrap;">
+            <button id="open-storage" class="btn secondary" type="button">Storage Snapshot</button>
+            <button id="wipe-data" class="btn secondary" type="button">Clear Data</button>
+            <button id="export-data" class="btn secondary" type="button">Export JSON</button>
+            <span id="export-status" style="font-size:.65rem;align-self:center;"></span>
+          </div>
+          <div class="mini-log" id="log" style="font-family:ui-monospace,monospace;font-size:.6rem;background:#0b141c;border:1px solid #112c3d;padding:8px 10px;border-radius:8px;max-height:140px;overflow:auto;line-height:1.25;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel tab-panel hidden" data-panel="help" style="margin-top:0;">
+      <h3>Examples</h3>
+      <div class="row">
+        <div>CSV example:</div>
+        <pre style="white-space:pre-wrap; background:rgba(0,0,0,0.25); padding:12px; border-radius:12px;">key,name,initials,logo,base running aggresiveness
+Yankees,New York Yankees,NYY,Logos/yankees.png,19
+Tigers,Detroit Tigers,DET,Logos/tigers.png,44</pre>
+      </div>
+      <div class="row">
+        <div>JSON example:</div>
+        <pre style="white-space:pre-wrap; background:rgba(0,0,0,0.25); padding:12px; border-radius:12px;">[
+  { "key": "Yankees", "name": "New York Yankees", "initials": "NYY", "logo": "Logos/yankees.png", "runAgg": 19 },
+  { "key": "Tigers",  "name": "Detroit Tigers",     "initials": "DET", "logo": "Logos/tigers.png",  "runAgg": 44 }
+]</pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="teams.js"></script>
+  <script src="import.js"></script>
+  <script>
+    (function(){
+      const tabButtons = Array.from(document.querySelectorAll('.tab'));
+      const panels = Array.from(document.querySelectorAll('.tab-panel'));
+      function show(tab){
+        tabButtons.forEach(b=>{ const sel = b.getAttribute('data-tab')===tab; b.classList.toggle('sel', sel); b.setAttribute('aria-selected', sel?'true':'false'); });
+        panels.forEach(p=> p.classList.toggle('hidden', p.getAttribute('data-panel')!==tab));
+      }
+      tabButtons.forEach(b=> b.addEventListener('click',()=> show(b.getAttribute('data-tab'))));
+      // mini summary
+      function updateMini(){
+        try{
+          const teams = JSON.parse(localStorage.getItem('ibl.teams')||'[]');
+          const rosters = JSON.parse(localStorage.getItem('ibl.rosters')||'{}');
+          const mini = document.querySelector('.mini-summary'); if(!mini) return;
+          let playerTotal=0; for(const k in rosters) playerTotal += (rosters[k]||[]).length;
+          mini.innerHTML = `<span class="pill">Teams ${teams.length}</span><span class="pill">Roster Teams ${Object.keys(rosters).length}</span><span class="pill">Players ${playerTotal}</span>`;
+        }catch(_){ }
+      }
+      updateMini(); setInterval(updateMini, 3000);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+/* Global black theme baseline */
+html, body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #000;
+  color: #eef2f7;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Screen container */
+.screen {
+  padding: 24px;
+  margin: 0 auto;
+  max-width: 1280px;
+}
+
+/* Cards / panels */
+.panel, .card, #main-menu, #team-select, #lineup-screen, #teams-screen, #stats-display {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+}
+
+/* Buttons */
+button, .btn {
+  font-size: 1rem;
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  color: #0a0f14;
+  background: linear-gradient(90deg, #0ea5e9 0%, #22d3ee 100%);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(14,165,233,0.35);
+}
+button:hover, .btn:hover {
+  filter: brightness(1.05);
+}
+button:disabled, .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Inputs */
+input, select, textarea {
+  color: #eef2f7;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+/* Logos and photos */
+.team-logo { width: 72px; height: 72px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); box-shadow: 0 6px 18px rgba(0,0,0,0.35); object-fit: cover; background:#111; }
+
+.player-photo { position: absolute; width: 72px; height: 72px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 16px rgba(0,0,0,0.25), 0 0 24px 4px #00eaff88; background: rgba(255,255,255,0.18); backdrop-filter: blur(2px); transform: translate(-50%, -50%); z-index: 2; }
+.base-photo { position: absolute; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #ffd700; box-shadow: 0 4px 16px rgba(255,215,0,0.25), 0 0 24px 4px #ffd70088; background: rgba(255,255,255,0.18); backdrop-filter: blur(2px); transform: translate(-50%, -50%); z-index: 2; }
+
+/* Field container default look (overridden in game.html inline for richer look) */
+#field-container {
+  width: 60vw;
+  max-width: 700px;
+  aspect-ratio: 1/1;
+  margin: 0 auto;
+  background: radial-gradient(circle at 50% 50%, #2f8f2f 0%, #257a25 55%, #1e6a1e 85%);
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+  border: 4px solid #f5f5f5;
+  overflow: visible;
+}
+
+/* Make game screen truly full-bleed; don't cap width like other .screen containers */
+#game-screen.screen {
+  max-width: none;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 6px; /* align with inline default */
+}
+
+/* Modal */
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn .25s; }
+.modal-content { background: rgba(255,255,255,0.10); border-radius: 20px; padding: 20px; min-width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 32px 8px #00eaff33; border: 1px solid rgba(255,255,255,0.25); animation: popIn .25s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { 0% { transform: scale(0.96); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }

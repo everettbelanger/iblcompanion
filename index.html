@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baseball Companion</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Polished vertical main menu with logo header */
+    body { margin:0; font-family: Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif; background:#060b13; color:#e9eef5; overflow:hidden; }
+    #main-menu { position:relative; width:100%; min-height:100vh; display:flex; flex-direction:column; }
+    .hero-layer { position:absolute; inset:0; overflow:hidden; }
+    #bg-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .grain { position:absolute; inset:0; background-image:url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHgwK89aXzuQAAAABJRU5ErkJggg=="); mix-blend-mode:overlay; opacity:.15; pointer-events:none; animation:grain 6s steps(4) infinite; }
+    @keyframes grain { 0%{transform:translate(0,0);} 25%{transform:translate(-10px,6px);} 50%{transform:translate(4px,-8px);} 75%{transform:translate(-6px,4px);} 100%{transform:translate(0,0);} }
+    .hero { position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-end; padding: clamp(16px,4vw,42px); flex-wrap:wrap; gap:32px; }
+    .logo-block { display:flex; align-items:center; gap:18px; }
+    .hero-logo { width:86px; height:86px; object-fit:contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.6)); animation:float 6s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+  .hero-title h1 { margin:0; font-size: clamp(1.8rem, 3vw, 3.2rem); letter-spacing:.5px; background:linear-gradient(90deg,#fff,#b2eaff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .hero-title h2 { margin:6px 0 0; font-weight:500; letter-spacing:.6px; font-size: clamp(.9rem,1.4vw,1.2rem); color:#8fd7ff; opacity:.85; }
+    .hero-cta { display:flex; gap:14px; align-items:center; }
+    .cta { padding:14px 28px; font-size:1rem; border-radius:40px; border:1px solid #ffffff33; background:linear-gradient(90deg,#0d4e91,#009adf); color:#fff; font-weight:600; letter-spacing:.5px; cursor:pointer; position:relative; overflow:hidden; box-shadow:0 6px 18px -4px #009adf55,0 2px 4px #0009; transition: transform .25s, box-shadow .25s, background .4s; }
+    .cta.glow { background:linear-gradient(90deg,#0078d4,#00eaff,#0078d4); background-size:220% 100%; animation:glowShift 8s linear infinite; }
+    @keyframes glowShift { 0%{background-position:0 0;} 50%{background-position:100% 0;} 100%{background-position:0 0;} }
+    .cta.primary { background:linear-gradient(90deg,#1b5,#0a3); }
+    .cta:focus-visible, .cta:hover { outline:none; transform:translateY(-3px); box-shadow:0 10px 28px -6px #00b7ff88, 0 4px 10px #0009; }
+  /* Adjusted: move main menu buttons upward (was margin-top:auto pinning to bottom) */
+  .tile-grid { position:relative; z-index:2; margin-top:6vh; padding: clamp(16px,4vw,46px); display:grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap: clamp(14px,2.2vw,32px); align-content:start; }
+    .tile { --shine: rgba(255,255,255,0.15); position:relative; background:linear-gradient(140deg,rgba(255,255,255,0.16),rgba(255,255,255,0.04)); border:1px solid #ffffff22; border-radius:22px; min-height:170px; padding:18px 18px 20px; text-align:left; display:flex; flex-direction:column; justify-content:flex-end; gap:4px; cursor:pointer; overflow:hidden; backdrop-filter:blur(8px); color:#fff; box-shadow: 0 6px 22px -8px #000a, 0 2px 6px -2px #0008; transition: transform .35s cubic-bezier(.34,1.4,.46,1), box-shadow .35s, border-color .35s; }
+    .tile.large { grid-column: span 2; min-height:270px; }
+    .tile[disabled] { opacity:.45; cursor:not-allowed; }
+    .tile:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 30% 20%,rgba(255,255,255,0.25),transparent 65%); opacity:0; transition:opacity .5s; }
+    .tile:after { content:""; position:absolute; inset:-60% -60%; background:conic-gradient(from 0deg, transparent 0 75deg, var(--shine) 90deg 110deg, transparent 130deg 360deg); animation:spin 14s linear infinite; opacity:.4; mix-blend-mode:overlay; pointer-events:none; }
+    @keyframes spin { to{ transform:rotate(360deg); } }
+    .tile:hover:not([disabled]), .tile:focus-visible:not([disabled]), .tile.active { transform:translateY(-8px) scale(1.02); box-shadow:0 18px 42px -12px #000c,0 8px 22px -6px #009adf77; border-color:#4dd7ff; }
+    .tile:hover:before, .tile:focus-visible:before, .tile.active:before { opacity:1; }
+    .tile h3 { margin:0 0 4px; font-size:1.18rem; letter-spacing:.5px; }
+    .tile p { margin:0; font-size:.78rem; letter-spacing:.4px; opacity:.82; }
+  .tile-bg { position:absolute; inset:0; background:linear-gradient(120deg,#042036,#061422); opacity:.55; transition: opacity .6s, transform 1s ease; filter: saturate(1.15); }
+  .tile-bg[data-img="savedgames"]{ background: center/cover no-repeat url('data/savedgamesbtn.jpg'), linear-gradient(120deg,#042036,#061422); background-blend-mode:overlay; }
+  .tile-bg[data-img="startgame"]{ background: center/cover no-repeat url('data/startgamebtn.jpg'), linear-gradient(120deg,#042036,#061422); background-blend-mode:overlay; }
+  .tile-bg[data-img="tournament"]{ background: center/cover no-repeat url('data/pennantrace.jpg'), linear-gradient(120deg,#042036,#061422); background-blend-mode:overlay; }
+  .tile-bg[data-img="statscentral"]{ background: center/cover no-repeat url('data/statscentral.jpg'), linear-gradient(120deg,#042036,#061422); background-blend-mode:overlay; }
+  .tile-bg[data-img="manageteams"]{ background: center/cover no-repeat url('data/manageteams.jpg'), linear-gradient(120deg,#042036,#061422); background-blend-mode:overlay; }
+  .tile-bg[data-img="settings"]{ background: center/cover no-repeat url('data/settings.jpg'), linear-gradient(120deg,#042036,#061422); background-blend-mode:overlay; }
+    .tile:hover .tile-bg, .tile:focus-visible .tile-bg, .tile.active .tile-bg { opacity:.85; transform:scale(1.08); }
+    .menu-footer { position:relative; z-index:2; padding:12px 28px 24px; text-align:center; font-size:.8rem; opacity:.85; }
+    .tip { color:#cfefff; }
+    /* Responsive adjustments */
+    @media (max-width:900px){ .hero { flex-direction:column; align-items:flex-start; } .tile.large { grid-column: span 1; } }
+    /* Accessibility focus ring fallback */
+    :focus-visible { outline:2px solid #00baff; outline-offset:3px; }
+  </style>
+  </style>
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0f2027" />
+  <link rel="icon" href="data:," />
+  <meta name="description" content="Modern, glassy baseball companion app" />
+</head>
+<body>
+  <div id="main-menu" class="screen">
+    <div class="hero-layer">
+      <canvas id="bg-canvas" aria-hidden="true"></canvas>
+      <div class="grain" aria-hidden="true"></div>
+    </div>
+    <header class="hero">
+      <div class="logo-block">
+        <img src="data/ibl-logo.png" alt="IBL Logo" class="hero-logo" onerror="this.style.display='none'" />
+        <div class="hero-title">
+          <h1>Baseball Companion</h1>
+          <h2>Interactive Baseball League Hub</h2>
+        </div>
+      </div>
+      <div class="hero-cta">
+        <button id="resume-btn" class="cta primary" style="display:none;">Resume</button>
+      </div>
+    </header>
+    <main class="tile-grid" role="menu" aria-label="Main Menu">
+      <button class="tile large" id="tile-play" data-nav="matchup.html">
+        <div class="tile-bg" data-img="startgame"></div>
+        <div class="tile-content">
+          <h3>Start Game</h3>
+          <p>Select teams & jump in.</p>
+        </div>
+      </button>
+      <button class="tile large" id="tile-pennant" data-nav="pennant.html">
+        <div class="tile-bg" data-img="tournament"></div>
+        <div class="tile-content">
+          <h3>Pennant Race</h3>
+          <p>Set up a tournament bracket.</p>
+        </div>
+      </button>
+      <button class="tile" id="tile-saved" data-nav="saved.html">
+        <div class="tile-bg" data-img="savedgames"></div>
+        <div class="tile-content"><h3>Saved Games</h3><p>Continue where you left off.</p></div>
+      </button>
+      <button class="tile" id="tile-stats" data-nav="stats.html">
+        <div class="tile-bg" data-img="statscentral"></div>
+        <div class="tile-content"><h3>Stats Central</h3><p>League leaders & trends.</p></div>
+      </button>
+      <button class="tile" id="tile-teams" data-nav="teams.html">
+        <div class="tile-bg" data-img="manageteams"></div>
+        <div class="tile-content"><h3>Manage Teams</h3><p>Rosters & lineups.</p></div>
+      </button>
+      <button class="tile" id="tile-settings" data-nav="#" disabled>
+        <div class="tile-bg" data-img="settings"></div>
+        <div class="tile-content"><h3>Settings</h3><p>Coming soon.</p></div>
+      </button>
+    </main>
+    <!-- Footer tip removed per request -->
+  </div>
+
+  <script>
+    (function(){
+      const resume = document.getElementById('resume-btn');
+      if(resume && localStorage.getItem('ibl.gameState')){
+        resume.style.display='inline-flex';
+        resume.addEventListener('click', ()=> window.location.href='game.html');
+      }
+      // Tiles navigate
+      document.querySelectorAll('.tile[data-nav]').forEach(t=>{
+        if(t.disabled) return;
+        t.addEventListener('click',()=>{ const nav=t.getAttribute('data-nav'); if(nav && nav!=='#') window.location.href=nav; });
+      });
+      // Basic keyboard grid navigation
+      const tiles = Array.from(document.querySelectorAll('.tile:not([disabled])'));
+      let idx = 0; function focusIdx(){ tiles.forEach((t,i)=> t.classList.toggle('active', i===idx)); tiles[idx].focus({preventScroll:true}); }
+      tiles.forEach((t,i)=> t.setAttribute('tabindex','0'));
+      if(tiles.length){ focusIdx(); }
+      window.addEventListener('keydown', (e)=>{
+        const cols = Math.max(1, Math.floor(document.querySelector('.tile-grid').offsetWidth / 260));
+        if(['ArrowRight','KeyD'].includes(e.code)){ idx = (idx+1)%tiles.length; focusIdx(); e.preventDefault(); }
+        else if(['ArrowLeft','KeyA'].includes(e.code)){ idx = (idx-1+tiles.length)%tiles.length; focusIdx(); e.preventDefault(); }
+        else if(['ArrowDown','KeyS'].includes(e.code)){ idx = Math.min(tiles.length-1, idx+cols); focusIdx(); e.preventDefault(); }
+        else if(['ArrowUp','KeyW'].includes(e.code)){ idx = Math.max(0, idx-cols); focusIdx(); e.preventDefault(); }
+        else if(e.code==='Enter' || e.code==='Space'){ tiles[idx].click(); e.preventDefault(); }
+      });
+      // Animated background: subtle moving light blobs
+      const canvas = document.getElementById('bg-canvas'); const ctx = canvas.getContext('2d');
+      function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+      resize(); window.addEventListener('resize', resize);
+      const blobs = Array.from({length:9}).map(()=>({ x:Math.random(), y:Math.random(), r: 120+ Math.random()*300, dx:(Math.random()-.5)*0.0005, dy:(Math.random()-.5)*0.0005, hue: 190+Math.random()*60 }));
+      function frame(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        blobs.forEach(b=>{
+          b.x += b.dx; b.y += b.dy; if(b.x<0||b.x>1) b.dx*=-1; if(b.y<0||b.y>1) b.dy*=-1;
+          const gx = b.x*canvas.width, gy = b.y*canvas.height;
+          const g = ctx.createRadialGradient(gx,gy,0,gx,gy,b.r);
+          g.addColorStop(0, `hsla(${b.hue},65%,55%,0.35)`);
+          g.addColorStop(1, 'hsla(210,80%,4%,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(gx,gy,b.r,0,Math.PI*2); ctx.fill();
+        });
+        requestAnimationFrame(frame);
+      }
+      frame();
+    })();
+  </script>
+</body>
+</html>
+
